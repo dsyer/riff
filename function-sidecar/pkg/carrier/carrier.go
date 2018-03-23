@@ -17,9 +17,10 @@
 package carrier
 
 import (
+	"log"
+
 	dispatch "github.com/projectriff/riff/function-sidecar/pkg/dispatcher"
 	"github.com/projectriff/riff/message-transport/pkg/transport"
-	"log"
 )
 
 func Run(consumer transport.Consumer, producer transport.Producer, dispatcher dispatch.Dispatcher, replyTopic string) {
@@ -44,8 +45,9 @@ func Run(consumer transport.Consumer, producer transport.Producer, dispatcher di
 			// Result message
 			resultMsg, open := <-dispatcher.Output() // Make sure to drain channel even if output==""
 			if open {
+				replyTopic := resultMsg.Headers().GetOrDefault("routekey", replyTopic)
 				if replyTopic != "" {
-					log.Printf("<<< %s\n", resultMsg)
+					log.Printf("<<< %s -> %s\n", replyTopic, resultMsg)
 					err := producer.Send(replyTopic, resultMsg)
 					if err != nil {
 						log.Printf("Error sending reply message: %v", err)
